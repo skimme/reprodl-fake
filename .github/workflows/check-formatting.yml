@@ -1,6 +1,6 @@
 name: check-formatting
 on: [push]
-job:
+jobs:
   run-black:
     runs-on: ubuntu-latest
     steps:
