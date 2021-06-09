@@ -18,11 +18,14 @@ import wandb
 
 
 class ESC50Dataset(torch.utils.data.Dataset):
-    def __init__(self, path: Path = Path("data\ESC-50-master\ESC-50-master"), 
-                 sample_rate: int = 8000,
-                 folds = [1]):
+    def __init__(
+        self,
+        path: Path = Path("data\ESC-50-master\ESC-50-master"),
+        sample_rate: int = 8000,
+        folds=[1],
+    ):
         # Load CSV & initialize all torchaudio.transforms
-        # Resample --> MelSpectrogram --> AmplitudeToDB     
+        # Resample --> MelSpectrogram --> AmplitudeToDB
         self.path = path
         self.csv = pd.read_csv(path / Path("meta/esc50.csv"))
         self.csv = self.csv[self.csv["fold"].isin(folds)]
@@ -46,7 +49,6 @@ class ESC50Dataset(torch.utils.data.Dataset):
 
 
 class AudioNet(pl.LightningModule):
-    
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
@@ -56,13 +58,17 @@ class AudioNet(pl.LightningModule):
         self.conv2 = nn.Conv2d(self.hp.base_filters, self.hp.base_filters, 3, padding=1)
         self.bn2 = nn.BatchNorm2d(self.hp.base_filters)
         self.pool1 = nn.MaxPool2d(2)
-        self.conv3 = nn.Conv2d(self.hp.base_filters, self.hp.base_filters * 2, 3, padding=1)
+        self.conv3 = nn.Conv2d(
+            self.hp.base_filters, self.hp.base_filters * 2, 3, padding=1
+        )
         self.bn3 = nn.BatchNorm2d(self.hp.base_filters * 2)
-        self.conv4 = nn.Conv2d(self.hp.base_filters * 2, self.hp.base_filters * 4, 3, padding=1)
+        self.conv4 = nn.Conv2d(
+            self.hp.base_filters * 2, self.hp.base_filters * 4, 3, padding=1
+        )
         self.bn4 = nn.BatchNorm2d(self.hp.base_filters * 4)
         self.pool2 = nn.MaxPool2d(2)
         self.fc1 = nn.Linear(self.hp.base_filters * 4, self.hp.num_classes)
-        
+
     def forward(self, x):
         x = self.conv1(x)
         x = F.relu(self.bn1(x))
@@ -77,37 +83,44 @@ class AudioNet(pl.LightningModule):
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = self.fc1(x[:, :, 0, 0])
         return x
-    
+
     def training_step(self, batch, batch_idx):
         # Very simple training loop
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        self.log('train_loss', loss, on_step=True)
+        self.log("train_loss", loss, on_step=True)
         return loss
-    
+
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         y_hat = torch.argmax(y_hat, dim=1)
         acc = functional.accuracy(y_hat, y)
-        self.log('val_acc', acc, on_epoch=True, prog_bar=True)
+        self.log("val_acc", acc, on_epoch=True, prog_bar=True)
         return acc
-        
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hp.optim.lr)
         return optimizer
 
+
 @hydra.main(config_path="configs", config_name="default")
-def train(cfg: DictConfig):    
+def train(cfg: DictConfig):
     path = Path(get_original_cwd()) / Path(cfg.data.path)
     train_data = ESC50Dataset(path=path, folds=cfg.data.train_folds)
     val_data = ESC50Dataset(path=path, folds=cfg.data.val_folds)
     test_data = ESC50Dataset(path=path, folds=cfg.data.test_folds)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=cfg.data.batch_size, shuffle=True, num_workers=0)
-    val_loader = torch.utils.data.DataLoader(val_data, batch_size=cfg.data.batch_size, num_workers=0)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=cfg.data.batch_size, num_workers=0)
+    train_loader = torch.utils.data.DataLoader(
+        train_data, batch_size=cfg.data.batch_size, shuffle=True, num_workers=0
+    )
+    val_loader = torch.utils.data.DataLoader(
+        val_data, batch_size=cfg.data.batch_size, num_workers=0
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_data, batch_size=cfg.data.batch_size, num_workers=0
+    )
 
     pl.seed_everything(cfg.seed)
 
@@ -117,6 +130,6 @@ def train(cfg: DictConfig):
     trainer = pl.Trainer(**cfg.trainer, logger=wanb_logger)
     trainer.fit(audionet, train_loader, val_loader)
 
-    
+
 if __name__ == "__main__":
     train()
