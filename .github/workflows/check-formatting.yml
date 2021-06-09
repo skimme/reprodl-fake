@@ -6,4 +6,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: pip install black
-      - run: black --check --diff train.pyg
+      - run: black --check --diff train.py
