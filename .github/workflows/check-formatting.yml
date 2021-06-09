@@ -1,0 +1,9 @@
+name: check-formatting
+on: [push]
+job:
+  run-black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: pip install black
+      - run: black --check --diff train.pyg
