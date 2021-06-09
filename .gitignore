@@ -2,3 +2,4 @@ data/ESC-50-master/*
 .vscode/*
 lightning_logs/*
 outputs/*
+wandb/*
