@@ -112,7 +112,8 @@ def train(cfg: DictConfig):
     val_data = ESC50Dataset(path=path, folds=cfg.data.val_folds)
     test_data = ESC50Dataset(path=path, folds=cfg.data.test_folds)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=cfg.data.batch_size, shuffle=True, num_workers=0
+    train_loader = torch.utils.data.DataLoader(
+        train_data, batch_size=cfg.data.batch_size, shuffle=True, num_workers=0
     )
     val_loader = torch.utils.data.DataLoader(
         val_data, batch_size=cfg.data.batch_size, num_workers=0
